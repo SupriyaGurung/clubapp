@@ -1,8 +1,8 @@
-import 'dart:ui';
-
+import 'dart:async';
 import 'package:flutter/material.dart';
-//import 'package:intl/intl.dart';
-import 'clubs.dart';
+import 'package:postgres/postgres.dart';
+
+import 'clubdb.dart';
 
 void main() {
   runApp(const ClubApp());
@@ -50,6 +50,34 @@ class _ClubPageState extends State<ClubPage> {
     });
   }
 
+  var connection = PostgreSQLConnection(
+    "10.0.2.2",
+    5432,
+    "clubdb",
+    username: "postgres",
+    password: "app7post",
+  );
+
+  Future<void> initDb() async {
+    try {
+      print('**connecting***');
+      await connection.open();
+      print('**connectedt***');
+      debugPrint("Database Connected!");
+    } catch (e) {
+      debugPrint("Error: $e");
+    }
+
+    List<Map<String, Map<String, dynamic>>> result =
+        await connection.mappedResultsQuery("SELECT * FROM club");
+    if (result.length > 1) {
+      for (var c in result) {
+        var x = c.values.toList();
+        print(x);
+      }
+    }
+  }
+
   String pp() {
     var s = (4 > 3) ? 'hello' : 'bye';
     return (s);
@@ -64,8 +92,7 @@ class _ClubPageState extends State<ClubPage> {
       body: Center(
           child: Container(
         decoration: BoxDecoration(
-          image:
-              DecorationImage(image: AssetImage('bx.png'), fit: BoxFit.cover),
+          image: DecorationImage(image: AssetImage('bxlogo.jpg')),
         ),
         child: Center(
             child: Text(
@@ -124,8 +151,8 @@ class _ClubPageState extends State<ClubPage> {
 
   Future<void> _createAccountDialog(ClubMember member) async {
     if (isItemUpdate) {
-      _fnameCtlr.text = member.firstName;
-      _lnameCtlr.text = member.lastName;
+      _fnameCtlr.text = member.first_name;
+      _lnameCtlr.text = member.last_name;
       _emailCtlr.text = member.email;
       _osisCtlr.text = member.osis;
     }
@@ -279,17 +306,16 @@ class _ClubPageState extends State<ClubPage> {
       String fname, String lname, String email, String osis, int itemNum) {
     setState(() {
       if (isItemUpdate) {
-        _memberList[itemNum].firstName = fname;
-        _memberList[itemNum].lastName = lname;
+        _memberList[itemNum].first_name = fname;
+        _memberList[itemNum].last_name = lname;
         _memberList[itemNum].email = email;
         _memberList[itemNum].osis = osis;
         isItemUpdate = false;
       } else {
         _memberList.add(ClubMember(
-            firstName: fname,
-            lastName: lname,
+            first_name: fname,
+            last_name: lname,
             osis: osis,
-            status: "good",
             email: email,
             itemNum: itemNum));
       }
@@ -329,7 +355,7 @@ class _ClubPageState extends State<ClubPage> {
               alignment: Alignment.centerLeft,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [Text(member.firstName), Text(member.lastName)],
+                children: [Text(member.first_name), Text(member.last_n ame)],
               ),
             ),
             Container(
