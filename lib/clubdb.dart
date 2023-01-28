@@ -11,6 +11,20 @@ class ClubMember {
       this.last_name = "",
       this.email = "",
       this.itemNum = 0});
+
+  Map<String, dynamic> toMap() {
+    return {
+      'osis': osis,
+      'first_name': first_name,
+      'last_name': last_name,
+      'email': email
+    };
+  }
+
+  @override
+  String toString() {
+    return 'ClubMember{ osis: $osis, first_name: $first_name, last_name: $last_name, email: $email}';
+  }
 }
 
 class Clubs {
@@ -44,4 +58,28 @@ class Clubs {
       this.secretary = "",
       this.se_osis = "",
       this.se_email = ""});
+
+  Map<String, dynamic> toMap() {
+    return {
+      'name': name,
+      'meeting_day': meeting_day,
+      'room': room,
+      'advisor': advisor,
+      'ad_email': ad_email,
+      'president': president,
+      'pr_osis': pr_osis,
+      'pr_email': pr_email,
+      'vp': vp,
+      'vp_osis': vp_osis,
+      'vp_email': vp_email,
+      'secretary': secretary,
+      'se_osis': se_osis,
+      'se_email': se_email
+    };
+  }
+
+  @override
+  String toString() {
+    return 'ClubMember{ name: $name, meeting day: $meeting_day, room: $room, advisor: $advisor, president:$president}';
+  }
 }

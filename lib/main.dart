@@ -355,7 +355,7 @@ class _ClubPageState extends State<ClubPage> {
               alignment: Alignment.centerLeft,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [Text(member.first_name), Text(member.last_n ame)],
+                children: [Text(member.first_name), Text(member.last_name)],
               ),
             ),
             Container(
