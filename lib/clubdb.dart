@@ -3,14 +3,13 @@ class ClubMember {
   String first_name;
   String last_name;
   String email;
-  int itemNum;
+  String password;
+  // String role;
+  // String clubs;
+  //int itemNum;
 
-  ClubMember(
-      {this.osis = "",
-      this.first_name = "",
-      this.last_name = "",
-      this.email = "",
-      this.itemNum = 0});
+  ClubMember(this.osis, this.first_name, this.last_name, this.email,
+      this.password); //, this.itemNum);
 
   Map<String, dynamic> toMap() {
     return {
@@ -27,7 +26,7 @@ class ClubMember {
   }
 }
 
-class Clubs {
+class Club {
   String name;
   String meeting_day;
   String room;
@@ -43,21 +42,21 @@ class Clubs {
   String se_osis;
   String se_email;
 
-  Clubs(
-      {this.name = "",
-      this.meeting_day = "",
-      this.room = "",
-      this.advisor = "",
-      this.ad_email = "",
-      this.president = "",
-      this.pr_osis = "",
-      this.pr_email = "",
-      this.vp = "",
-      this.vp_osis = "",
-      this.vp_email = "",
-      this.secretary = "",
-      this.se_osis = "",
-      this.se_email = ""});
+  Club(
+      this.name,
+      this.meeting_day,
+      this.room,
+      this.advisor,
+      this.ad_email,
+      this.president,
+      this.pr_osis,
+      this.pr_email,
+      this.vp,
+      this.vp_osis,
+      this.vp_email,
+      this.secretary,
+      this.se_osis,
+      this.se_email);
 
   Map<String, dynamic> toMap() {
     return {
@@ -80,6 +79,6 @@ class Clubs {
 
   @override
   String toString() {
-    return 'ClubMember{ name: $name, meeting day: $meeting_day, room: $room, advisor: $advisor, president:$president}';
+    return 'Club{ name: $name, meeting day: $meeting_day, room: $room, advisor: $advisor, president:$president}';
   }
 }

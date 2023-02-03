@@ -1,8 +1,13 @@
 import 'dart:async';
+import 'package:clubapp/pages/home.dart';
 import 'package:flutter/material.dart';
 import 'package:postgres/postgres.dart';
-
+import 'package:flutter/src/material/colors.dart';
 import 'clubdb.dart';
+import 'pages/members.dart';
+
+PostgreSQLConnection? connection;
+bool? _isLoggedIn;
 
 void main() {
   runApp(const ClubApp());
@@ -15,7 +20,7 @@ class ClubApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'BX Clubs',
+      title: 'Bronx Science Clubs',
       theme: ThemeData(
         primarySwatch: Colors.green,
       ),
@@ -35,13 +40,16 @@ class ClubPage extends StatefulWidget {
 
 class _ClubPageState extends State<ClubPage> {
   final List<ClubMember> _memberList = <ClubMember>[];
+  final TextEditingController _osisCtlr = TextEditingController();
   final TextEditingController _fnameCtlr = TextEditingController();
   final TextEditingController _lnameCtlr = TextEditingController();
   final TextEditingController _emailCtlr = TextEditingController();
-  final TextEditingController _osisCtlr = TextEditingController();
+  final TextEditingController _psswdCtlr = TextEditingController();
 
+  // PostgreSQLConnection? connection;
+  // bool _isLoggedIn = false;
   bool isItemUpdate = false;
-  bool _isLoggedin = false;
+
   int _selectedIndex = 0;
 
   void _onTapped(int index) {
@@ -50,37 +58,61 @@ class _ClubPageState extends State<ClubPage> {
     });
   }
 
-  var connection = PostgreSQLConnection(
-    "10.0.2.2",
-    5432,
-    "clubdb",
-    username: "postgres",
-    password: "app7post",
-  );
+  @override
+  void initState() {
+    super.initState();
+
+    _isLoggedIn = false;
+    connection = PostgreSQLConnection(
+      "10.0.2.2",
+      5432,
+      "clubdb",
+      username: "postgres",
+      password: "1Mero3Postgres7",
+    );
+    initDb();
+  }
+  // var connection = PostgreSQLConnection(
+  //   "10.0.2.2",
+  //   5432,
+  //   "clubdb",
+  //   username: "postgres",
+  //   password: "app7post",
+  // );
 
   Future<void> initDb() async {
+    // connection = PostgreSQLConnection(
+    //   "10.0.2.2",
+    //   5432,
+    //   "clubdb",
+    //   username: "postgres",
+    //   password: "app7post",
+    // );
+
     try {
-      print('**connecting***');
-      await connection.open();
-      print('**connectedt***');
-      debugPrint("Database Connected!");
+      print('Connecting...');
+      await connection!.open();
+      print('Database Connected!');
     } catch (e) {
-      debugPrint("Error: $e");
+      print("Error: $e");
     }
 
-    List<Map<String, Map<String, dynamic>>> result =
-        await connection.mappedResultsQuery("SELECT * FROM club");
-    if (result.length > 1) {
-      for (var c in result) {
-        var x = c.values.toList();
-        print(x);
-      }
-    }
+    // List<Map<String, Map<String, dynamic>>> result =
+    //     await connection!.mappedResultsQuery("SELECT * FROM club");
+    // if (result.length > 1) {
+    //   for (var c in result) {
+    //     var x = c.values.toList();
+    //     print(x);
+    //   }
+    // }
   }
 
-  String pp() {
-    var s = (4 > 3) ? 'hello' : 'bye';
-    return (s);
+  Future<void> _addData(ClubMember cm) async {
+    var sql_query =
+        "insert into members (osis, first_name, last_name, email, password) " +
+            "values('${cm.osis}', '${cm.first_name}', '${cm.last_name}', '${cm.email}', '${cm.password}')";
+
+    await connection!.query(sql_query);
   }
 
   @override
@@ -89,20 +121,15 @@ class _ClubPageState extends State<ClubPage> {
       appBar: AppBar(
         title: Text(widget.title),
       ),
-      body: Center(
-          child: Container(
-        decoration: BoxDecoration(
-          image: DecorationImage(image: AssetImage('bxlogo.jpg')),
-        ),
-        child: Center(
-            child: Text(
-          '\n\nJoin\nClub',
-          style: TextStyle(
-              fontSize: 70,
-              color: Color.fromARGB(255, 194, 218, 60),
-              fontWeight: FontWeight.bold),
-        )),
-      ))
+      body: Container(
+        child: _isLoggedIn! ? MemberPage() : ClubHomePage(), //_home(),
+      )
+      // Center(
+      //     child: Container(
+      //   decoration: BoxDecoration(
+      //     image: DecorationImage(image: AssetImage("assets/bxlogo.jpg")),
+      //   ),
+      // ))
 
       // ListView(
       //   padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -110,14 +137,13 @@ class _ClubPageState extends State<ClubPage> {
       //       _memberList.map((ClubMember member) => _toDoList(member)).toList(),
       // )
       ,
-
       bottomNavigationBar: BottomNavigationBar(
           items: <BottomNavigationBarItem>[
             BottomNavigationBarItem(
               icon: Icon(Icons.account_box),
               label: 'Create Account',
             ),
-            _isLoggedin
+            _isLoggedIn!
                 ? BottomNavigationBarItem(
                     icon: Icon(Icons.logout),
                     label: 'Logout',
@@ -132,10 +158,10 @@ class _ClubPageState extends State<ClubPage> {
           onTap: (int index) {
             switch (index) {
               case 0:
-                _createAccountDialog(ClubMember());
+                _createAccountDialog();
                 break;
               case 1:
-                _isLoggedin ? " " : _login(ClubMember());
+                _isLoggedIn! ? _logout() : _login();
                 break;
             }
             setState(() {
@@ -149,13 +175,30 @@ class _ClubPageState extends State<ClubPage> {
     );
   }
 
-  Future<void> _createAccountDialog(ClubMember member) async {
-    if (isItemUpdate) {
-      _fnameCtlr.text = member.first_name;
-      _lnameCtlr.text = member.last_name;
-      _emailCtlr.text = member.email;
-      _osisCtlr.text = member.osis;
-    }
+  Widget _home() {
+    return Center(
+        child: Container(
+      decoration: BoxDecoration(
+        image: DecorationImage(image: AssetImage('assets/bxlogo.jpg')),
+      ),
+    ));
+  }
+
+  // Widget _member() {
+  //   return Center(
+  //     child: Text("this is member page"),
+  //   );
+  // }
+
+  Future<void> _createAccountDialog() async {
+    print('this is in main');
+    // if (isItemUpdate) {
+    //   _osisCtlr.text = member.osis;
+    //   _fnameCtlr.text = member.first_name;
+    //   _lnameCtlr.text = member.last_name;
+    //   _emailCtlr.text = member.email;
+    //   _psswdCtlr.text = member.password;
+    // }
     return showDialog<void>(
       context: context,
       barrierDismissible: false, // user must tap button!
@@ -166,6 +209,11 @@ class _ClubPageState extends State<ClubPage> {
               title: const Text('Create an Account'),
               content: Column(
                 children: [
+                  TextField(
+                    controller: _osisCtlr,
+                    decoration:
+                        const InputDecoration(hintText: 'Enter osis number'),
+                  ),
                   TextField(
                     controller: _fnameCtlr,
                     decoration:
@@ -182,49 +230,10 @@ class _ClubPageState extends State<ClubPage> {
                         hintText: 'Enter bronx science email'),
                   ),
                   TextField(
-                    controller: _osisCtlr,
+                    controller: _psswdCtlr,
                     decoration:
-                        const InputDecoration(hintText: 'Enter osis number'),
+                        const InputDecoration(hintText: 'Enter password'),
                   ),
-                  // TextField(
-                  //   controller: _dateCtlr,
-                  //   decoration: const InputDecoration(
-                  //       icon: Icon(Icons.calendar_today),
-                  //       labelText: "Pick a Date"),
-                  //   readOnly: true,
-                  //   onTap: () async {
-                  //     DateTime? pickedDate = await showDatePicker(
-                  //         context: context,
-                  //         initialDate: DateTime.now(),
-                  //         firstDate: DateTime(1950),
-                  //         lastDate: DateTime(2300));
-                  //     if (pickedDate != null) {
-                  //       String strDate =
-                  //           DateFormat('yyyy-MM-dd').format(pickedDate);
-                  //       setState(() {
-                  //         _dateCtlr.text = strDate;
-                  //       });
-                  //     }
-                  //   },
-                  // ),
-                  // TextField(
-                  //   controller: _timeCtlr,
-                  //   decoration: const InputDecoration(
-                  //       icon: Icon(Icons.calendar_today),
-                  //       labelText: "Pick a Time"),
-                  //   readOnly: true,
-                  //   onTap: () async {
-                  //     TimeOfDay? pickedTime = await showTimePicker(
-                  //         context: context, initialTime: TimeOfDay.now());
-
-                  //     if (pickedTime != null) {
-                  //       setState(() {
-                  //         _timeCtlr.text =
-                  //             "${pickedTime.hour}:${pickedTime.minute}";
-                  //       });
-                  //     }
-                  //   },
-                  // ),
                 ],
               ),
               actions: <Widget>[
@@ -240,11 +249,12 @@ class _ClubPageState extends State<ClubPage> {
                   child: const Text('Create'),
                   onPressed: () {
                     Navigator.of(context).pop();
-                    int index =
-                        isItemUpdate ? member.itemNum : _memberList.length;
+                    // int index =
+                    //     isItemUpdate ? member.itemNum : _memberList.length;
 
-                    _createAccount(_fnameCtlr.text, _lnameCtlr.text,
-                        _emailCtlr.text, _osisCtlr.text, index);
+                    _createAccount(_osisCtlr.text, _fnameCtlr.text,
+                        _lnameCtlr.text, _emailCtlr.text, _psswdCtlr.text);
+                    //index);
                   },
                 ),
               ],
@@ -255,7 +265,62 @@ class _ClubPageState extends State<ClubPage> {
     );
   }
 
-  Future<void> _login(ClubMember member) async {
+  Future<void> _logout() {
+    // setState(() {
+    //   _isLoggedIn = false;
+    // });
+
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false, // user must tap button!
+      builder: (BuildContext context) {
+        return Column(
+          children: [
+            AlertDialog(
+              title: const Text('Logout'),
+              // content: Column(
+              //   children: [
+              //     TextField(
+              //       controller: _emailCtlr,
+              //       decoration: const InputDecoration(hintText: 'Enter email'),
+              //     ),
+              //     TextField(
+              //       controller: _psswdCtlr,
+              //       decoration:
+              //           const InputDecoration(hintText: 'Enter password'),
+              //     ),
+              //   ],
+              // ),
+              actions: <Widget>[
+                TextButton(
+                  child: const Text('Cancel'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    // isItemUpdate = false;
+                    _clearCtrl();
+                  },
+                ),
+                TextButton(
+                  child: const Text('LOGOUT?'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    setState(() {
+                      _isLoggedIn = false;
+                    });
+                    _clearCtrl();
+                    // int index =
+                    //     isItemUpdate ? member.itemNum : _memberList.length;
+                  },
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _login() {
     return showDialog<void>(
       context: context,
       barrierDismissible: false, // user must tap button!
@@ -267,11 +332,11 @@ class _ClubPageState extends State<ClubPage> {
               content: Column(
                 children: [
                   TextField(
-                    controller: _fnameCtlr,
+                    controller: _emailCtlr,
                     decoration: const InputDecoration(hintText: 'Enter email'),
                   ),
                   TextField(
-                    controller: _lnameCtlr,
+                    controller: _psswdCtlr,
                     decoration:
                         const InputDecoration(hintText: 'Enter password'),
                   ),
@@ -290,8 +355,14 @@ class _ClubPageState extends State<ClubPage> {
                   child: const Text('Login'),
                   onPressed: () {
                     Navigator.of(context).pop();
-                    int index =
-                        isItemUpdate ? member.itemNum : _memberList.length;
+                    _authenticate().then((value) => value
+                        ? setState(() {
+                            _isLoggedIn = true;
+                          })
+                        : print('you got booted'));
+                    _clearCtrl();
+                    // int index =
+                    //     isItemUpdate ? member.itemNum : _memberList.length;
                   },
                 ),
               ],
@@ -302,24 +373,41 @@ class _ClubPageState extends State<ClubPage> {
     );
   }
 
+  Future<bool> _authenticate() async {
+    List<
+        Map<
+            String,
+            Map<String,
+                dynamic>>> result = await connection!.mappedResultsQuery(
+        "SELECT * FROM members where password='${_psswdCtlr.text}' and email='${_emailCtlr.text}'");
+    if (result.length == 1) {
+      print('autheticated ******');
+      return true;
+    } else {
+      print('not autheticated ******');
+      return false;
+    }
+  }
+
   void _createAccount(
-      String fname, String lname, String email, String osis, int itemNum) {
-    setState(() {
-      if (isItemUpdate) {
-        _memberList[itemNum].first_name = fname;
-        _memberList[itemNum].last_name = lname;
-        _memberList[itemNum].email = email;
-        _memberList[itemNum].osis = osis;
-        isItemUpdate = false;
-      } else {
-        _memberList.add(ClubMember(
-            first_name: fname,
-            last_name: lname,
-            osis: osis,
-            email: email,
-            itemNum: itemNum));
-      }
-    });
+      String osis, String fname, String lname, String email, String psswd) {
+    //, int itemNum) {
+    var cm = ClubMember(osis, fname, lname, email, psswd);
+    //itemNum: itemNum);
+    print('adding data ***********');
+    _addData(cm);
+    // setState(() {
+    //   if (isItemUpdate) {
+    //     _memberList[itemNum].password = psswd;
+    //     _memberList[itemNum].first_name = fname;
+    //     _memberList[itemNum].last_name = lname;
+    //     _memberList[itemNum].email = email;
+    //     _memberList[itemNum].osis = osis;
+    //     isItemUpdate = false;
+    //   } else {
+    //     _memberList.add(cm);
+    //   }
+    // });
     _clearCtrl();
   }
 
@@ -329,14 +417,15 @@ class _ClubPageState extends State<ClubPage> {
     _lnameCtlr.clear();
     _osisCtlr.clear();
     _emailCtlr.clear();
+    _psswdCtlr.clear();
   }
 
   void _deleteTodoItem(ClubMember member) {
     setState(() {
-      _memberList.removeAt(member.itemNum);
+      _memberList.removeAt(1); //(member.itemNum);
       // updates the itemNum value matching the index of ToDoItem in the list
       for (int i = 0; i < _memberList.length; i++) {
-        _memberList[i].itemNum = i;
+        //_memberList[i].itemNum = i;
       }
     });
   }
@@ -345,7 +434,7 @@ class _ClubPageState extends State<ClubPage> {
   Widget _toDoList(ClubMember member) {
     return ListTile(
         leading: CircleAvatar(
-          child: Text((member.itemNum + 1).toString()),
+          child: Text(1.toString()), //(member.itemNum + 1).toString()),
         ),
         title: Row(
           crossAxisAlignment: CrossAxisAlignment.end,
@@ -376,7 +465,7 @@ class _ClubPageState extends State<ClubPage> {
             GestureDetector(
               onTap: () {
                 isItemUpdate = true;
-                _createAccountDialog(member);
+                _createAccountDialog();
               },
               child: Icon(Icons.edit),
             ),
