@@ -11,15 +11,10 @@ class MemberPage extends StatefulWidget {
 }
 
 class _MemberPageState extends State<MemberPage> {
-  Future<void> _getData() async {
-    List<Map<String, Map<String, dynamic>>> result =
-        await connection!.mappedResultsQuery("SELECT * FROM club");
-    if (result.length > 1) {
-      for (var c in result) {
-        var x = c.values.toList();
-        print(x);
-      }
-    }
+  List<Club> _clubList = ClubData().getClubData();
+  @override
+  void initState() {
+    super.initState();
   }
 
   Future<void> _addData(ClubMember cm) async {
@@ -29,13 +24,32 @@ class _MemberPageState extends State<MemberPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: GestureDetector(
-        onTap: () {
-          _getData();
-        },
-        child: Icon(Icons.edit),
-      ),
+    return ListView(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      children: _clubList.map((Club c) => _displayClub(c)).toList(),
     );
+  }
+
+  Widget _displayClub(Club c) {
+    return ListTile(
+        leading: CircleAvatar(
+          child: Text((c.name[0]).toString()),
+        ),
+        title: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.fromLTRB(5, 0, 0, 5),
+              alignment: Alignment.centerLeft,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [Text(c.name)],
+              ),
+            ),
+          ],
+        ),
+        trailing: Column(
+          children: [],
+        ));
   }
 }

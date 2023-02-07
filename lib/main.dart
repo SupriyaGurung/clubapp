@@ -2,10 +2,11 @@ import 'dart:async';
 import 'package:clubapp/pages/home.dart';
 import 'package:flutter/material.dart';
 import 'package:postgres/postgres.dart';
-import 'package:flutter/src/material/colors.dart';
+
 import 'clubdb.dart';
 import 'pages/members.dart';
 
+List<Club> _clubList = [];
 PostgreSQLConnection? connection;
 bool? _isLoggedIn;
 
@@ -20,7 +21,7 @@ class ClubApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Bronx Science Clubs',
+      title: 'BX Clubs',
       theme: ThemeData(
         primarySwatch: Colors.green,
       ),
@@ -46,8 +47,6 @@ class _ClubPageState extends State<ClubPage> {
   final TextEditingController _emailCtlr = TextEditingController();
   final TextEditingController _psswdCtlr = TextEditingController();
 
-  // PostgreSQLConnection? connection;
-  // bool _isLoggedIn = false;
   bool isItemUpdate = false;
 
   int _selectedIndex = 0;
@@ -70,41 +69,53 @@ class _ClubPageState extends State<ClubPage> {
       username: "postgres",
       password: "1Mero3Postgres7",
     );
+
     initDb();
+    _getData('club').then((value) {
+      _extractClubData(value);
+    });
   }
-  // var connection = PostgreSQLConnection(
-  //   "10.0.2.2",
-  //   5432,
-  //   "clubdb",
-  //   username: "postgres",
-  //   password: "app7post",
-  // );
 
-  Future<void> initDb() async {
-    // connection = PostgreSQLConnection(
-    //   "10.0.2.2",
-    //   5432,
-    //   "clubdb",
-    //   username: "postgres",
-    //   password: "app7post",
-    // );
+  Future waitForMe() async {
+    return Future.delayed(Duration(seconds: 3), () {});
+  }
 
+  void initDb() async {
     try {
-      print('Connecting...');
       await connection!.open();
-      print('Database Connected!');
+      print("db connected ******");
     } catch (e) {
-      print("Error: $e");
+      debugPrint("Error: $e");
     }
+  }
 
-    // List<Map<String, Map<String, dynamic>>> result =
-    //     await connection!.mappedResultsQuery("SELECT * FROM club");
-    // if (result.length > 1) {
-    //   for (var c in result) {
-    //     var x = c.values.toList();
-    //     print(x);
-    //   }
-    // }
+  Future<List> _getData(String tbl_name) async {
+    await waitForMe();
+    List<Map<String, Map<String, dynamic>>> result =
+        await connection!.mappedResultsQuery("SELECT * FROM $tbl_name");
+    return result;
+  }
+
+  void _extractClubData(List maplst) {
+    for (var m in maplst) {
+      Club c = Club(
+          m['club']['name'],
+          m['club']['meeting_day'],
+          m['club']['room'],
+          m['club']['advisor'],
+          m['club']['ad_email'],
+          m['club']['president'],
+          m['club']['pr_osis'],
+          m['club']['pr_email'],
+          m['club']['vp'],
+          m['club']['vp_osis'],
+          m['club']['vp_email'],
+          m['club']['secretary'],
+          m['club']['se_osis'],
+          m['club']['se_email']);
+
+      _clubList.add(c);
+    }
   }
 
   Future<void> _addData(ClubMember cm) async {
@@ -122,26 +133,13 @@ class _ClubPageState extends State<ClubPage> {
         title: Text(widget.title),
       ),
       body: Container(
-        child: _isLoggedIn! ? MemberPage() : ClubHomePage(), //_home(),
-      )
-      // Center(
-      //     child: Container(
-      //   decoration: BoxDecoration(
-      //     image: DecorationImage(image: AssetImage("assets/bxlogo.jpg")),
-      //   ),
-      // ))
-
-      // ListView(
-      //   padding: const EdgeInsets.symmetric(vertical: 8.0),
-      //   children:
-      //       _memberList.map((ClubMember member) => _toDoList(member)).toList(),
-      // )
-      ,
+        child: _isLoggedIn! ? MemberPage() : ClubHomePage(),
+      ),
       bottomNavigationBar: BottomNavigationBar(
           items: <BottomNavigationBarItem>[
             BottomNavigationBarItem(
               icon: Icon(Icons.account_box),
-              label: 'Create Account',
+              label: 'Signup',
             ),
             _isLoggedIn!
                 ? BottomNavigationBarItem(
@@ -153,8 +151,9 @@ class _ClubPageState extends State<ClubPage> {
                     label: 'Login',
                   ),
           ],
+          iconSize: 50.0,
           currentIndex: _selectedIndex,
-          selectedItemColor: Colors.amber[800],
+          selectedItemColor: Color.fromARGB(255, 14, 118, 104),
           onTap: (int index) {
             switch (index) {
               case 0:
@@ -168,37 +167,10 @@ class _ClubPageState extends State<ClubPage> {
               _selectedIndex = index;
             });
           }),
-      // floatingActionButton: FloatingActionButton(
-      //     onPressed: () => _displayDialog(ClubMember()),
-      //     tooltip: 'Add Item',
-      //     child: Icon(Icons.add)),
     );
   }
 
-  Widget _home() {
-    return Center(
-        child: Container(
-      decoration: BoxDecoration(
-        image: DecorationImage(image: AssetImage('assets/bxlogo.jpg')),
-      ),
-    ));
-  }
-
-  // Widget _member() {
-  //   return Center(
-  //     child: Text("this is member page"),
-  //   );
-  // }
-
   Future<void> _createAccountDialog() async {
-    print('this is in main');
-    // if (isItemUpdate) {
-    //   _osisCtlr.text = member.osis;
-    //   _fnameCtlr.text = member.first_name;
-    //   _lnameCtlr.text = member.last_name;
-    //   _emailCtlr.text = member.email;
-    //   _psswdCtlr.text = member.password;
-    // }
     return showDialog<void>(
       context: context,
       barrierDismissible: false, // user must tap button!
@@ -277,23 +249,10 @@ class _ClubPageState extends State<ClubPage> {
         return Column(
           children: [
             AlertDialog(
-              title: const Text('Logout'),
-              // content: Column(
-              //   children: [
-              //     TextField(
-              //       controller: _emailCtlr,
-              //       decoration: const InputDecoration(hintText: 'Enter email'),
-              //     ),
-              //     TextField(
-              //       controller: _psswdCtlr,
-              //       decoration:
-              //           const InputDecoration(hintText: 'Enter password'),
-              //     ),
-              //   ],
-              // ),
+              title: const Text('Do you want to logout?'),
               actions: <Widget>[
                 TextButton(
-                  child: const Text('Cancel'),
+                  child: const Text('No'),
                   onPressed: () {
                     Navigator.of(context).pop();
                     // isItemUpdate = false;
@@ -301,7 +260,7 @@ class _ClubPageState extends State<ClubPage> {
                   },
                 ),
                 TextButton(
-                  child: const Text('LOGOUT?'),
+                  child: const Text('Yes'),
                   onPressed: () {
                     Navigator.of(context).pop();
                     setState(() {
@@ -359,7 +318,7 @@ class _ClubPageState extends State<ClubPage> {
                         ? setState(() {
                             _isLoggedIn = true;
                           })
-                        : print('you got booted'));
+                        : print(''));
                     _clearCtrl();
                     // int index =
                     //     isItemUpdate ? member.itemNum : _memberList.length;
@@ -391,23 +350,9 @@ class _ClubPageState extends State<ClubPage> {
 
   void _createAccount(
       String osis, String fname, String lname, String email, String psswd) {
-    //, int itemNum) {
     var cm = ClubMember(osis, fname, lname, email, psswd);
-    //itemNum: itemNum);
-    print('adding data ***********');
     _addData(cm);
-    // setState(() {
-    //   if (isItemUpdate) {
-    //     _memberList[itemNum].password = psswd;
-    //     _memberList[itemNum].first_name = fname;
-    //     _memberList[itemNum].last_name = lname;
-    //     _memberList[itemNum].email = email;
-    //     _memberList[itemNum].osis = osis;
-    //     isItemUpdate = false;
-    //   } else {
-    //     _memberList.add(cm);
-    //   }
-    // });
+
     _clearCtrl();
   }
 
@@ -419,64 +364,10 @@ class _ClubPageState extends State<ClubPage> {
     _emailCtlr.clear();
     _psswdCtlr.clear();
   }
+}
 
-  void _deleteTodoItem(ClubMember member) {
-    setState(() {
-      _memberList.removeAt(1); //(member.itemNum);
-      // updates the itemNum value matching the index of ToDoItem in the list
-      for (int i = 0; i < _memberList.length; i++) {
-        //_memberList[i].itemNum = i;
-      }
-    });
-  }
-
-  // create the List of the to-do task in the body
-  Widget _toDoList(ClubMember member) {
-    return ListTile(
-        leading: CircleAvatar(
-          child: Text(1.toString()), //(member.itemNum + 1).toString()),
-        ),
-        title: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Container(
-              padding: const EdgeInsets.fromLTRB(5, 9, 0, 5),
-              alignment: Alignment.centerLeft,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [Text(member.first_name), Text(member.last_name)],
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.fromLTRB(20, 0, 0, 5),
-              alignment: Alignment.centerLeft,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(member.osis),
-                  Text(member.email),
-                ],
-              ),
-            )
-          ],
-        ),
-        trailing: Column(
-          children: [
-            GestureDetector(
-              onTap: () {
-                isItemUpdate = true;
-                _createAccountDialog();
-              },
-              child: Icon(Icons.edit),
-            ),
-            GestureDetector(
-              onTap: () {
-                isItemUpdate = false;
-                _deleteTodoItem(member);
-              },
-              child: Icon(Icons.delete),
-            )
-          ],
-        ));
+class ClubData {
+  List<Club> getClubData() {
+    return _clubList;
   }
 }
